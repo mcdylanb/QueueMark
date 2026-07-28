@@ -280,7 +280,7 @@ private fun QuickWinsSection(quickWins: List<Bookmark>, onBookmarkClick: (String
                     onClick = { onBookmarkClick(bookmark.id) },
                     modifier = Modifier
                         .width(250.dp)
-                        .height(120.dp)
+                        .height(125.dp)
                 )
             }
         }
