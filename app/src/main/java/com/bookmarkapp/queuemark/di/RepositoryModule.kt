@@ -1,5 +1,7 @@
 package com.bookmarkapp.queuemark.di
 
+import com.bookmarkapp.queuemark.data.remote.AuthRepository
+import com.bookmarkapp.queuemark.data.remote.AuthRepositoryImpl
 import com.bookmarkapp.queuemark.data.remote.NoOpSyncScheduler
 import com.bookmarkapp.queuemark.data.remote.SyncScheduler
 import com.bookmarkapp.queuemark.data.repository.BookmarkRepository
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSyncScheduler(impl: NoOpSyncScheduler): SyncScheduler
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 }

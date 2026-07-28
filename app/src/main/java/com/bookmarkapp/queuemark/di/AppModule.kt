@@ -1,6 +1,7 @@
 package com.bookmarkapp.queuemark.di
 
 import com.bookmarkapp.queuemark.domain.TimeProvider
+import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,4 +34,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideTimeProvider(): TimeProvider = TimeProvider { System.currentTimeMillis() }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 }
