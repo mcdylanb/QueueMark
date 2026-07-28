@@ -1,13 +1,8 @@
 package com.bookmarkapp.queuemark.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -18,7 +13,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bookmarkapp.queuemark.ui.auth.AuthScreen
 import com.bookmarkapp.queuemark.ui.auth.AuthViewModel
-import com.bookmarkapp.queuemark.ui.dashboard.DashboardScreen
+import com.bookmarkapp.queuemark.ui.dashboard.DashboardRoute
+import com.bookmarkapp.queuemark.ui.detail.DetailRoute
 
 object QueuemarkDestinations {
     const val AUTH_ROUTE = "auth"
@@ -52,7 +48,7 @@ fun QueuemarkNavGraph(
         }
 
         composable(QueuemarkDestinations.DASHBOARD_ROUTE) {
-            DashboardScreen(
+            DashboardRoute(
                 onBookmarkClick = { id ->
                     navController.navigate(QueuemarkDestinations.detailRoute(id))
                 }
@@ -64,18 +60,8 @@ fun QueuemarkNavGraph(
             arguments = listOf(
                 navArgument(QueuemarkDestinations.DETAIL_ARG) { type = NavType.StringType }
             )
-        ) { entry ->
-            DetailPlaceholder(
-                bookmarkId = entry.arguments?.getString(QueuemarkDestinations.DETAIL_ARG).orEmpty()
-            )
+        ) {
+            DetailRoute(onNavigateBack = { navController.popBackStack() })
         }
-    }
-}
-
-// Replaced by the real DetailScreen in Phase 4.
-@Composable
-private fun DetailPlaceholder(bookmarkId: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Detail for $bookmarkId arrives in Phase 4.")
     }
 }
