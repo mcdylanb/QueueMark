@@ -100,6 +100,23 @@ class FakeAuthRepository : AuthRepository {
     }
 }
 
+class FakeSyncScheduler : com.bookmarkapp.queuemark.data.remote.SyncScheduler {
+    var syncRequests = 0
+    val reminders = mutableListOf<Pair<String, Long>>()
+
+    override fun requestSync() {
+        syncRequests++
+    }
+
+    override fun scheduleReminder(bookmarkId: String, triggerAtMillis: Long) {
+        reminders += bookmarkId to triggerAtMillis
+    }
+
+    override fun cancelReminder(bookmarkId: String) {
+        reminders.removeAll { it.first == bookmarkId }
+    }
+}
+
 class FakeUrlMetadataService : UrlMetadataService {
     var result: Result<UrlMetadata> =
         Result.success(UrlMetadata(title = "Scraped Title", description = "Desc", wordCount = 1000))

@@ -28,8 +28,16 @@ object QueuemarkDestinations {
 @Composable
 fun QueuemarkNavGraph(
     startDestination: String,
+    deepLinkBookmarkId: String? = null,
     navController: NavHostController = rememberNavController()
 ) {
+    // Notification tap lands directly on the bookmark it reminded about.
+    LaunchedEffect(deepLinkBookmarkId) {
+        if (deepLinkBookmarkId != null) {
+            navController.navigate(QueuemarkDestinations.detailRoute(deepLinkBookmarkId))
+        }
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable(QueuemarkDestinations.AUTH_ROUTE) {
