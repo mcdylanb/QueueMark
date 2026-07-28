@@ -275,7 +275,13 @@ private fun QuickWinsSection(quickWins: List<Bookmark>, onBookmarkClick: (String
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(quickWins, key = { it.id }) { bookmark ->
-                QuickWinCard(bookmark = bookmark, onClick = { onBookmarkClick(bookmark.id) })
+                QuickWinCard(
+                    bookmark = bookmark,
+                    onClick = { onBookmarkClick(bookmark.id) },
+                    modifier = Modifier
+                        .width(250.dp)
+                        .height(120.dp)
+                )
             }
         }
     }
