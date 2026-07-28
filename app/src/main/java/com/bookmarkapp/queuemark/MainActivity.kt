@@ -1,68 +1,37 @@
 package com.bookmarkapp.queuemark
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.bookmarkapp.queuemark.data.remote.AuthRepository
+import com.bookmarkapp.queuemark.ui.navigation.QueuemarkDestinations
+import com.bookmarkapp.queuemark.ui.navigation.QueuemarkNavGraph
 import com.bookmarkapp.queuemark.ui.theme.QueuemarkTheme
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        testFirebaseAuth()
+
+        // Persisted Firebase session (including anonymous) skips the auth screen.
+        val startDestination = if (authRepository.currentUserId != null) {
+            QueuemarkDestinations.DASHBOARD_ROUTE
+        } else {
+            QueuemarkDestinations.AUTH_ROUTE
+        }
+
         setContent {
             QueuemarkTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                QueuemarkNavGraph(startDestination = startDestination)
             }
         }
-    }
-}
-
-// Temporary smoke test for the Firebase console setup; replaced by the real
-// AuthRepository in Phase 3.
-fun testFirebaseAuth() {
-    val auth = Firebase.auth
-    auth.signInAnonymously()
-        .addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val user = auth.currentUser
-                Log.d("FirebaseTest", "Auth Success! User ID: ${user?.uid}")
-            } else {
-                Log.w("FirebaseTest", "Auth Failed", task.exception)
-            }
-        }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    QueuemarkTheme {
-        Greeting("Android")
     }
 }
