@@ -1,18 +1,23 @@
+// AGP 9 marks the classic DSL as error-level deprecated; we must stay on the
+// classic toolchain (android.newDsl=false) because KSP/Hilt/Room do not
+// support AGP 9's built-in Kotlin yet. Remove when the ecosystem catches up.
+@file:Suppress("DEPRECATION_ERROR", "DEPRECATION")
+
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.example.queuemark"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    namespace = "com.bookmarkapp.queuemark"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.queuemark"
+        applicationId = "com.bookmarkapp.queuemark"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -23,9 +28,7 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = false
         }
     }
     compileOptions {
@@ -34,6 +37,12 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
@@ -46,6 +55,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
