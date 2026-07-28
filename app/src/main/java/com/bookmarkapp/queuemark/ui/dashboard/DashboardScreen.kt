@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -297,11 +299,23 @@ private fun SwipeableBookmarkCard(
         state = dismissState,
         backgroundContent = {
             val (color, icon, alignment) = when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.StartToEnd -> Triple(
-                    MaterialTheme.colorScheme.primary,
-                    Icons.Filled.CheckCircle,
-                    Alignment.CenterStart
-                )
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    if (bookmark.isCompleted) {
+                        // Completed -> Unread
+                        Triple(
+                            MaterialTheme.colorScheme.secondary,
+                            Icons.AutoMirrored.Filled.Undo,
+                            Alignment.CenterStart
+                        )
+                    } else {
+                        // Unread -> Completed
+                        Triple(
+                            MaterialTheme.colorScheme.primary,
+                            Icons.Filled.CheckCircle,
+                            Alignment.CenterStart
+                        )
+                    }
+                }
 
                 else -> Triple(
                     MaterialTheme.colorScheme.error,
