@@ -2,8 +2,10 @@ package com.bookmarkapp.queuemark.di
 
 import com.bookmarkapp.queuemark.data.remote.AuthRepository
 import com.bookmarkapp.queuemark.data.remote.AuthRepositoryImpl
+import com.bookmarkapp.queuemark.data.remote.JsoupUrlMetadataService
 import com.bookmarkapp.queuemark.data.remote.NoOpSyncScheduler
 import com.bookmarkapp.queuemark.data.remote.SyncScheduler
+import com.bookmarkapp.queuemark.data.remote.UrlMetadataService
 import com.bookmarkapp.queuemark.data.repository.BookmarkRepository
 import com.bookmarkapp.queuemark.data.repository.BookmarkRepositoryImpl
 import dagger.Binds
@@ -27,4 +29,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUrlMetadataService(impl: JsoupUrlMetadataService): UrlMetadataService
 }

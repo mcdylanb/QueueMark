@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.firebase.analytics)
 
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.jsoup)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
