@@ -1,6 +1,7 @@
 package com.bookmarkapp.queuemark
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.bookmarkapp.queuemark.ui.theme.QueuemarkTheme
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -19,6 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        testFirebaseAuth()
         setContent {
             QueuemarkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -30,6 +34,21 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+// Temporary smoke test for the Firebase console setup; replaced by the real
+// AuthRepository in Phase 3.
+fun testFirebaseAuth() {
+    val auth = Firebase.auth
+    auth.signInAnonymously()
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val user = auth.currentUser
+                Log.d("FirebaseTest", "Auth Success! User ID: ${user?.uid}")
+            } else {
+                Log.w("FirebaseTest", "Auth Failed", task.exception)
+            }
+        }
 }
 
 @Composable
