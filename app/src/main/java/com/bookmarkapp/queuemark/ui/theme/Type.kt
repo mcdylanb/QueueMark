@@ -1,4 +1,4 @@
-package com.example.queuemark.ui.theme
+package com.bookmarkapp.queuemark.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

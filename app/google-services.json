@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "422854925331",
+    "project_id": "queuemark-77bf4",
+    "storage_bucket": "queuemark-77bf4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:422854925331:android:21284d398fc731a1f4b3e6",
+        "android_client_info": {
+          "package_name": "com.bookmarkapp.queuemark"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-kYXOUPbmZw7SpWvhV0SecfTpSP3-W7Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

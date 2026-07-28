@@ -1,4 +1,4 @@
-package com.example.queuemark
+package com.bookmarkapp.queuemark
 
 import org.junit.Test
 
