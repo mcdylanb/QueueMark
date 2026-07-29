@@ -17,17 +17,31 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class DetailViewMode { READER, WEB }
+
 data class DetailUiState(
     val bookmark: Bookmark? = null,
+    val viewMode: DetailViewMode = DetailViewMode.WEB,
+    val isWebLoadFailed: Boolean = false,
     val showCompletePrompt: Boolean = false,
     val closeScreen: Boolean = false
-)
+) {
+    val hasReaderContent: Boolean get() = bookmark?.content != null
+    val showOfflineEmptyState: Boolean
+        get() = viewMode == DetailViewMode.WEB && isWebLoadFailed
+}
 
 sealed interface DetailUiAction {
     data object OnExitRequested : DetailUiAction
     data object OnToggleComplete : DetailUiAction
     data object OnConfirmComplete : DetailUiAction
     data object OnDismissPrompt : DetailUiAction
+    data object OnToggleViewMode : DetailUiAction
+
+    // Fired when real content becomes visible: Reader composed, or WebView
+    // finished loading. Starts the reading session clock.
+    data object OnContentShown : DetailUiAction
+    data object OnWebLoadFailed : DetailUiAction
 }
 
 @HiltViewModel
@@ -40,19 +54,27 @@ class DetailViewModel @Inject constructor(
     private val bookmarkId: String =
         checkNotNull(savedStateHandle[QueuemarkDestinations.DETAIL_ARG])
 
-    // Wall-clock reading session, started when the screen opens (WORKFLOW.md flow 3).
-    private val sessionStartMillis: Long = timeProvider.now()
+    // Wall-clock reading session (WORKFLOW.md flow 3), started only once real
+    // content has been shown — an error page must never count as reading.
+    private var sessionStartMillis: Long? = null
 
+    private val modeOverride = MutableStateFlow<DetailViewMode?>(null)
+    private val webLoadFailed = MutableStateFlow(false)
     private val prompt = MutableStateFlow(false)
     private val close = MutableStateFlow(false)
 
     val uiState: StateFlow<DetailUiState> = combine(
         repository.observeById(bookmarkId),
+        modeOverride,
+        webLoadFailed,
         prompt,
         close
-    ) { bookmark, showPrompt, closeScreen ->
+    ) { bookmark, override, loadFailed, showPrompt, closeScreen ->
         DetailUiState(
             bookmark = bookmark,
+            viewMode = override
+                ?: if (bookmark?.content != null) DetailViewMode.READER else DetailViewMode.WEB,
+            isWebLoadFailed = loadFailed,
             showCompletePrompt = showPrompt,
             closeScreen = closeScreen
         )
@@ -83,14 +105,38 @@ class DetailViewModel @Inject constructor(
                 prompt.value = false
                 close.value = true
             }
+
+            DetailUiAction.OnToggleViewMode -> {
+                val target = if (uiState.value.viewMode == DetailViewMode.READER) {
+                    DetailViewMode.WEB
+                } else {
+                    DetailViewMode.READER
+                }
+                // Re-entering web mode retries the load from scratch.
+                if (target == DetailViewMode.WEB) webLoadFailed.value = false
+                modeOverride.value = target
+            }
+
+            DetailUiAction.OnContentShown -> {
+                if (sessionStartMillis == null) sessionStartMillis = timeProvider.now()
+            }
+
+            DetailUiAction.OnWebLoadFailed -> {
+                webLoadFailed.value = true
+                // Graceful fallback: offline text beats a browser error page.
+                if (uiState.value.hasReaderContent && modeOverride.value == null) {
+                    modeOverride.value = DetailViewMode.READER
+                }
+            }
         }
     }
 
-    // ≥80% of the estimated read time spent on the page counts as "read".
+    // ≥80% of the estimated read time spent with content visible counts as "read".
     private fun shouldPromptForCompletion(): Boolean {
+        val start = sessionStartMillis ?: return false
         val bookmark = uiState.value.bookmark ?: return false
         if (bookmark.isCompleted) return false
-        val minutesSpent = (timeProvider.now() - sessionStartMillis) / 60_000.0
+        val minutesSpent = (timeProvider.now() - start) / 60_000.0
         return minutesSpent >= COMPLETION_THRESHOLD * bookmark.estimatedReadTime
     }
 

@@ -44,6 +44,7 @@ class ShareViewModelTest {
         val saved = repository.rows.value.values.single()
         assertEquals("https://example.com/article", saved.url)
         assertEquals("Scraped Title", saved.title)
+        assertEquals("Para one.\n\nPara two.", saved.content)
         assertFalse(saved.isSynced)
     }
 

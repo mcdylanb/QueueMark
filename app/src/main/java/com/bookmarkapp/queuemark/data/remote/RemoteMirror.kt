@@ -15,6 +15,9 @@ import kotlinx.coroutines.launch
 // Echo suppression (DATABASE_SCHEMA.md rule 2): a remote doc never overwrites
 // a local row that is still dirty (isSynced = false) — the local edit wins
 // until SyncWorker pushes it; last-write-wins after that.
+// The reader `content` column is local-only (never uploaded), so mirror
+// upserts must carry the local value forward or clean rows would lose their
+// offline text on every snapshot re-emission.
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class RemoteMirror @Inject constructor(
@@ -36,7 +39,7 @@ class RemoteMirror @Inject constructor(
                     remote.forEach { entity ->
                         val local = dao.getById(entity.id)
                         if (local == null || local.isSynced) {
-                            dao.upsert(entity)
+                            dao.upsert(entity.copy(content = local?.content))
                         }
                     }
                 }
