@@ -21,6 +21,7 @@ enum class DetailViewMode { READER, WEB }
 
 data class DetailUiState(
     val bookmark: Bookmark? = null,
+    val isLoaded: Boolean = false,
     val viewMode: DetailViewMode = DetailViewMode.WEB,
     val isWebLoadFailed: Boolean = false,
     val showCompletePrompt: Boolean = false,
@@ -29,6 +30,10 @@ data class DetailUiState(
     val hasReaderContent: Boolean get() = bookmark?.content != null
     val showOfflineEmptyState: Boolean
         get() = viewMode == DetailViewMode.WEB && isWebLoadFailed
+
+    // Stale deep link (deleted bookmark, or a notification from another
+    // account): the id resolves to nothing after the DB has answered.
+    val notFound: Boolean get() = isLoaded && bookmark == null
 }
 
 sealed interface DetailUiAction {
@@ -72,6 +77,9 @@ class DetailViewModel @Inject constructor(
     ) { bookmark, override, loadFailed, showPrompt, closeScreen ->
         DetailUiState(
             bookmark = bookmark,
+            // combine only emits once every source (incl. the DB read) has;
+            // any emission therefore means the lookup finished.
+            isLoaded = true,
             viewMode = override
                 ?: if (bookmark?.content != null) DetailViewMode.READER else DetailViewMode.WEB,
             isWebLoadFailed = loadFailed,

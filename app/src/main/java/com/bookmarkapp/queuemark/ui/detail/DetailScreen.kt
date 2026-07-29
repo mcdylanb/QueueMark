@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BookmarkRemove
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Public
@@ -122,6 +123,13 @@ fun DetailScreen(
     ) { innerPadding ->
         val bookmark = state.bookmark
         when {
+            state.notFound -> BookmarkNotFoundState(
+                onBack = { onAction(DetailUiAction.OnExitRequested) },
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+            )
+
             bookmark == null -> Unit
 
             state.showOfflineEmptyState -> OfflineEmptyState(
@@ -254,6 +262,42 @@ private fun ReaderContent(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkNotFoundState(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.BookmarkRemove,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(48.dp)
+            )
+            Text(
+                text = "This bookmark is no longer available",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "It may have been deleted or belong to a different account.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center
+            )
+            TextButton(onClick = onBack) {
+                Text("Back to your queue")
             }
         }
     }
@@ -410,6 +454,26 @@ private fun ReaderContentPreviewLight() {
 private fun ReaderContentPreviewDark() {
     QueuemarkTheme(darkTheme = true) {
         ReaderContent(bookmark = previewBookmark, onContentShown = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Not found — light")
+@Composable
+private fun BookmarkNotFoundPreviewLight() {
+    QueuemarkTheme(darkTheme = false) {
+        BookmarkNotFoundState(onBack = {}, modifier = Modifier.fillMaxSize())
+    }
+}
+
+@Preview(
+    showBackground = true,
+    name = "Not found — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun BookmarkNotFoundPreviewDark() {
+    QueuemarkTheme(darkTheme = true) {
+        BookmarkNotFoundState(onBack = {}, modifier = Modifier.fillMaxSize())
     }
 }
 
