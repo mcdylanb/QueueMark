@@ -18,7 +18,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): BookmarkDatabase =
-        Room.databaseBuilder(context, BookmarkDatabase::class.java, "queuemark.db").build()
+        Room.databaseBuilder(context, BookmarkDatabase::class.java, "queuemark.db")
+            .addMigrations(BookmarkDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideBookmarkDao(database: BookmarkDatabase): BookmarkDao = database.bookmarkDao()

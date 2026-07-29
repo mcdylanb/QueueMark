@@ -5,6 +5,7 @@ data class Bookmark(
     val url: String,
     val title: String,
     val description: String?,
+    val content: String? = null,
     val estimatedReadTime: Int,
     val createdAt: Long,
     val reminderTime: Long?,
