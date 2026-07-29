@@ -2,6 +2,7 @@ package com.bookmarkapp.queuemark.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bookmarkapp.queuemark.data.local.GuestSessionStore
 import com.bookmarkapp.queuemark.data.remote.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -33,7 +34,8 @@ sealed interface AuthUiAction {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val guestStore: GuestSessionStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -63,8 +65,16 @@ class AuthViewModel @Inject constructor(
                 authRepository.signUpWithEmail(uiState.value.email.trim(), uiState.value.password)
             }
 
-            AuthUiAction.OnContinueOffline -> authenticate {
-                authRepository.signInAnonymously()
+            // Guest entry must work with zero network: set the local flag and
+            // navigate immediately. The anonymous Firebase account (needed only
+            // for sync) is created opportunistically here and lazily on later
+            // app starts — see QueuemarkApplication.
+            AuthUiAction.OnContinueOffline -> {
+                guestStore.isGuest = true
+                _uiState.update { it.copy(isAuthenticated = true) }
+                viewModelScope.launch {
+                    authRepository.signInAnonymously() // best-effort; offline is fine
+                }
             }
 
             AuthUiAction.OnErrorDismissed -> _uiState.update { it.copy(error = null) }

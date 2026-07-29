@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.bookmarkapp.queuemark.data.local.GuestSessionStore
 import com.bookmarkapp.queuemark.data.remote.AuthRepository
 import com.bookmarkapp.queuemark.ui.navigation.QueuemarkDestinations
 import com.bookmarkapp.queuemark.ui.navigation.QueuemarkNavGraph
@@ -18,11 +19,16 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: AuthRepository
 
+    @Inject
+    lateinit var guestStore: GuestSessionStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val isSignedIn = authRepository.currentUserId != null
+        // A local guest session counts: entering the app must not require the
+        // network-backed Firebase account (created lazily for sync only).
+        val isSignedIn = authRepository.currentUserId != null || guestStore.isGuest
 
         // Persisted Firebase session (including anonymous) skips the auth screen.
         val startDestination = if (isSignedIn) {
