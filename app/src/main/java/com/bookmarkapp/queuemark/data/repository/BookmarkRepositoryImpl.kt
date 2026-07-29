@@ -72,6 +72,10 @@ class BookmarkRepositoryImpl @Inject constructor(
         runCatching { dao.markSynced(id) }
     }
 
+    override suspend fun clearAll() = withContext(ioDispatcher) {
+        dao.clearAll()
+    }
+
     // Every local mutation leaves the row dirty (isSynced = false, enforced by the
     // DAO queries) and pokes the scheduler so Phase 5's SyncWorker can mirror it.
     private suspend fun writeAndSync(block: suspend () -> Unit): Result<Unit> =

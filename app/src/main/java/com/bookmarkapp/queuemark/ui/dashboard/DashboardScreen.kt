@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -64,12 +65,20 @@ import com.bookmarkapp.queuemark.ui.theme.QueuemarkTheme
 @Composable
 fun DashboardRoute(
     onBookmarkClick: (String) -> Unit,
+    onNavigateToAuth: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     DashboardScreen(
         state = state,
-        onAction = viewModel::onAction,
+        onAction = { action ->
+            viewModel.onAction(action)
+
+            // trigger the navigation when the logout action fires
+            if (action is DashboardUiAction.OnLogoutClick) {
+                onNavigateToAuth()
+            }
+        },
         onBookmarkClick = onBookmarkClick
     )
 }
@@ -112,7 +121,13 @@ fun DashboardScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item { DashboardHeader(state.userLabel, state.hasPendingSync) }
+            item {
+                DashboardHeader(
+                    userLabel = state.userLabel,
+                    hasPendingSync = state.hasPendingSync,
+                    onLogoutClick = { onAction(DashboardUiAction.OnLogoutClick) }
+                )
+            }
 
             item {
                 OutlinedTextField(
@@ -216,7 +231,7 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader(userLabel: String, hasPendingSync: Boolean) {
+private fun DashboardHeader(userLabel: String, hasPendingSync: Boolean, onLogoutClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -245,6 +260,16 @@ private fun DashboardHeader(userLabel: String, hasPendingSync: Boolean) {
                 MaterialTheme.colorScheme.secondary
             }
         )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        IconButton(onClick = onLogoutClick) {
+            Icon(
+                imageVector = Icons.Filled.Logout,
+                contentDescription = "Log Out",
+                tint = MaterialTheme.colorScheme.error // Or use onBackground
+            )
+        }
     }
 }
 

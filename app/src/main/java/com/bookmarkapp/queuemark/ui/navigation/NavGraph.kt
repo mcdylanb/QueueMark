@@ -59,6 +59,13 @@ fun QueuemarkNavGraph(
             DashboardRoute(
                 onBookmarkClick = { id ->
                     navController.navigate(QueuemarkDestinations.detailRoute(id))
+                },
+                onNavigateToAuth = {
+                    navController.navigate(QueuemarkDestinations.AUTH_ROUTE) {
+                        // This clears the dashboard from the backstack so pressing
+                        // back doesn't take them into a logged-out dashboard
+                        popUpTo(QueuemarkDestinations.DASHBOARD_ROUTE) { inclusive = true }
+                    }
                 }
             )
         }

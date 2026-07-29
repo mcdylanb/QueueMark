@@ -51,6 +51,8 @@ sealed interface DashboardUiAction {
     data object OnDismissSheet : DashboardUiAction
     data class OnAddBookmark(val url: String, val title: String?) : DashboardUiAction
     data object OnMessageShown : DashboardUiAction
+
+    data object OnLogoutClick : DashboardUiAction
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,7 +61,7 @@ class DashboardViewModel @Inject constructor(
     private val repository: BookmarkRepository,
     private val metadataService: UrlMetadataService,
     private val timeProvider: TimeProvider,
-    authRepository: AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private data class Controls(
@@ -142,6 +144,14 @@ class DashboardViewModel @Inject constructor(
                 } ?: return@launch
                 repository.setCompleted(action.id, !current.isCompleted)
                     .onFailure { showMessage("Couldn't update bookmark") }
+            }
+
+            is DashboardUiAction.OnLogoutClick -> {
+                viewModelScope.launch {
+                    repository.clearAll() // clear cache
+
+                    authRepository.signOut() // sign out of firebase
+                }
             }
 
             DashboardUiAction.OnMessageShown ->
