@@ -76,6 +76,10 @@ private class FakeBookmarkDao : BookmarkDao {
             ))
         }
     }
+
+    override suspend fun clearAll() {
+        rows.value = emptyMap()
+    }
 }
 
 private class RecordingSyncScheduler : SyncScheduler {

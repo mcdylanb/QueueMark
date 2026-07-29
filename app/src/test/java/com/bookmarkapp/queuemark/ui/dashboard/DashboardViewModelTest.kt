@@ -5,10 +5,9 @@ import com.bookmarkapp.queuemark.testutil.FakeAuthRepository
 import com.bookmarkapp.queuemark.testutil.FakeBookmarkRepository
 import com.bookmarkapp.queuemark.testutil.FakeUrlMetadataService
 import com.bookmarkapp.queuemark.testutil.MainDispatcherRule
+import com.bookmarkapp.queuemark.testutil.collectEagerly
 import com.bookmarkapp.queuemark.testutil.MutableTimeProvider
 import com.bookmarkapp.queuemark.testutil.testBookmark
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,7 +41,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `add bookmark uses scraped title and computed read time`() = runTest {
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
 
         viewModel.onAction(DashboardUiAction.OnAddBookmark("https://example.com/a", title = null))
 
@@ -50,12 +49,13 @@ class DashboardViewModelTest {
         assertEquals("Scraped Title", saved.title)
         assertEquals(5, saved.estimatedReadTime) // 1000 words / 200 wpm
         assertEquals(42L, saved.createdAt)
+        assertEquals("Para one.\n\nPara two.", saved.content)
         assertFalse(saved.isSynced)
     }
 
     @Test
     fun `scrape failure still saves bookmark with fallback title`() = runTest {
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
         metadataService.result = Result.failure(RuntimeException("offline"))
 
         viewModel.onAction(DashboardUiAction.OnAddBookmark("https://example.com/a", title = null))
@@ -67,7 +67,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `manual title beats scraped title`() = runTest {
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
 
         viewModel.onAction(DashboardUiAction.OnAddBookmark("https://example.com/a", "My Title"))
 
@@ -76,7 +76,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `bare domain gets https scheme, garbage is rejected`() = runTest {
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
 
         viewModel.onAction(DashboardUiAction.OnAddBookmark("example.com/article", null))
         assertEquals(
@@ -97,7 +97,7 @@ class DashboardViewModelTest {
             testBookmark("long", readTime = 20),
             testBookmark("done", readTime = 3, isCompleted = true)
         )
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
 
         val state = viewModel.uiState.value
         assertEquals(setOf("short", "long"), state.unread.map { it.id }.toSet())
@@ -111,7 +111,7 @@ class DashboardViewModelTest {
             testBookmark("match").copy(title = "Kotlin flows deep dive"),
             testBookmark("other").copy(title = "Swift concurrency")
         )
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
 
         viewModel.onAction(DashboardUiAction.OnSearchQueryChange("kotlin"))
 
@@ -123,7 +123,7 @@ class DashboardViewModelTest {
     @Test
     fun `toggle complete flips the bookmark`() = runTest {
         repository.seed(testBookmark("b1"))
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
 
         viewModel.onAction(DashboardUiAction.OnToggleComplete("b1"))
 
@@ -132,7 +132,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `user label falls back to Reader for anonymous`() = runTest {
-        backgroundScope.launch { viewModel.uiState.collect() }
+        collectEagerly(viewModel.uiState)
         assertEquals("Reader", viewModel.uiState.value.userLabel)
 
         authRepository.signInWithEmail("dylan@school.edu", "secret1")

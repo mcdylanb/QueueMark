@@ -66,6 +66,10 @@ class FakeBookmarkRepository : BookmarkRepository {
         rows.value[id]?.let { rows.value += id to it.copy(isSynced = true) }
     }
 
+    override suspend fun clearAll() {
+        rows.value = emptyMap()
+    }
+
     private inline fun write(block: () -> Unit): Result<Unit> =
         if (failNextWrite) {
             failNextWrite = false
@@ -95,6 +99,11 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun signUpWithEmail(email: String, password: String): Result<Unit> =
         signInWithEmail(email, password)
 
+    override suspend fun linkWithEmail(email: String, password: String): Result<Unit> {
+        user.value = user.value?.copy(email = email, isAnonymous = false)
+        return Result.success(Unit)
+    }
+
     override fun signOut() {
         user.value = null
     }
@@ -118,8 +127,14 @@ class FakeSyncScheduler : com.bookmarkapp.queuemark.data.remote.SyncScheduler {
 }
 
 class FakeUrlMetadataService : UrlMetadataService {
-    var result: Result<UrlMetadata> =
-        Result.success(UrlMetadata(title = "Scraped Title", description = "Desc", wordCount = 1000))
+    var result: Result<UrlMetadata> = Result.success(
+        UrlMetadata(
+            title = "Scraped Title",
+            description = "Desc",
+            wordCount = 1000,
+            content = "Para one.\n\nPara two."
+        )
+    )
 
     override suspend fun fetch(url: String): Result<UrlMetadata> = result
 }
@@ -136,12 +151,14 @@ fun testBookmark(
     id: String = "b1",
     readTime: Int = 5,
     isCompleted: Boolean = false,
-    createdAt: Long = 0L
+    createdAt: Long = 0L,
+    content: String? = null
 ) = Bookmark(
     id = id,
     url = "https://example.com/$id",
     title = "Title $id",
     description = null,
+    content = content,
     estimatedReadTime = readTime,
     createdAt = createdAt,
     reminderTime = null,

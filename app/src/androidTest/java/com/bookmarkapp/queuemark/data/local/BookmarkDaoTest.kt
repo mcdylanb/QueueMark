@@ -116,6 +116,14 @@ class BookmarkDaoTest {
     }
 
     @Test
+    fun largeReaderContentRoundTrips() = runTest {
+        val content = "paragraph ".repeat(20_000) // ~200KB
+        dao.upsert(entity("b1").copy(content = content))
+
+        assertEquals(content, dao.getById("b1")?.content)
+    }
+
+    @Test
     fun mutationsMarkRowDirty() = runTest {
         dao.upsert(entity("b1").copy(isSynced = true))
         dao.setReminder("b1", reminderTime = 9000L)
