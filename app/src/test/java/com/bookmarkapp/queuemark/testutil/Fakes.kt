@@ -99,13 +99,14 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun signUpWithEmail(email: String, password: String): Result<Unit> =
         signInWithEmail(email, password)
 
-    override suspend fun linkWithEmail(email: String, password: String): Result<Unit> {
-        user.value = user.value?.copy(email = email, isAnonymous = false)
-        return Result.success(Unit)
-    }
-
     override fun signOut() {
         user.value = null
+    }
+
+    override suspend fun linkWithEmail(email: String, password: String): Result<Unit> {
+        val current = user.value ?: return Result.failure(IllegalStateException("No user"))
+        user.value = current.copy(email = email, isAnonymous = false)
+        return Result.success(Unit)
     }
 }
 

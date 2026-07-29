@@ -160,7 +160,7 @@ fun AuthScreen(
                 enabled = !state.isLoading
             ) {
                 Text(
-                    text = "Continue offline for now",
+                    text = "Continue as guest",
                     color = MaterialTheme.colorScheme.secondary
                 )
             }
