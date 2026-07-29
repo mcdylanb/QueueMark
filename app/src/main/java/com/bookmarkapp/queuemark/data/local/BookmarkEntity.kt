@@ -18,7 +18,8 @@ data class BookmarkEntity(
     val reminderTime: Long? = null,
     val isCompleted: Boolean = false,
     val completedAt: Long? = null,
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
 fun BookmarkEntity.toDomain(): Bookmark = Bookmark(
@@ -32,7 +33,8 @@ fun BookmarkEntity.toDomain(): Bookmark = Bookmark(
     reminderTime = reminderTime,
     isCompleted = isCompleted,
     completedAt = completedAt,
-    isSynced = isSynced
+    isSynced = isSynced,
+    isDeleted = false
 )
 
 fun Bookmark.toEntity(): BookmarkEntity = BookmarkEntity(
@@ -46,5 +48,6 @@ fun Bookmark.toEntity(): BookmarkEntity = BookmarkEntity(
     reminderTime = reminderTime,
     isCompleted = isCompleted,
     completedAt = completedAt,
-    isSynced = isSynced
+    isSynced = isSynced,
+    isDeleted = false
 )
