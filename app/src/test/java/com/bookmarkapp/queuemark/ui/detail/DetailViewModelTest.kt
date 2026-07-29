@@ -147,6 +147,34 @@ class DetailViewModelTest {
         assertFalse(repository.rows.value.getValue("b1").isCompleted)
     }
 
+    // --- stale deep links ---
+
+    @Test
+    fun `unknown bookmark id resolves to not-found, never blank or prompting`() = runTest {
+        // no seed: the id simply doesn't exist (deleted, or another account's)
+        val viewModel = createViewModel("ghost-id")
+        collectEagerly(viewModel.uiState)
+
+        assertTrue(viewModel.uiState.value.isLoaded)
+        assertTrue(viewModel.uiState.value.notFound)
+
+        clock.advanceMinutes(30.0)
+        viewModel.onAction(DetailUiAction.OnExitRequested)
+
+        assertFalse(viewModel.uiState.value.showCompletePrompt)
+        assertTrue(viewModel.uiState.value.closeScreen)
+    }
+
+    @Test
+    fun `existing bookmark is not flagged not-found`() = runTest {
+        repository.seed(testBookmark("b1"))
+        val viewModel = createViewModel()
+        collectEagerly(viewModel.uiState)
+
+        assertTrue(viewModel.uiState.value.isLoaded)
+        assertFalse(viewModel.uiState.value.notFound)
+    }
+
     // --- view modes ---
 
     @Test

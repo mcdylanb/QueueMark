@@ -82,28 +82,37 @@ class FakeBookmarkRepository : BookmarkRepository {
 
 class FakeAuthRepository : AuthRepository {
     val user = MutableStateFlow<AuthUser?>(null)
+    var failAnonymous = false
+    var failEmailSignIn = false
+    var signUpCalls = 0
+    var linkCalls = 0
 
     override val authState: Flow<AuthUser?> = user
     override val currentUserId: String? get() = user.value?.uid
 
     override suspend fun signInAnonymously(): Result<Unit> {
+        if (failAnonymous) return Result.failure(RuntimeException("offline"))
         user.value = AuthUser(uid = "anon", email = null, isAnonymous = true)
         return Result.success(Unit)
     }
 
     override suspend fun signInWithEmail(email: String, password: String): Result<Unit> {
+        if (failEmailSignIn) return Result.failure(RuntimeException("wrong password"))
         user.value = AuthUser(uid = "user", email = email, isAnonymous = false)
         return Result.success(Unit)
     }
 
-    override suspend fun signUpWithEmail(email: String, password: String): Result<Unit> =
-        signInWithEmail(email, password)
+    override suspend fun signUpWithEmail(email: String, password: String): Result<Unit> {
+        signUpCalls++
+        return signInWithEmail(email, password)
+    }
 
     override fun signOut() {
         user.value = null
     }
 
     override suspend fun linkWithEmail(email: String, password: String): Result<Unit> {
+        linkCalls++
         val current = user.value ?: return Result.failure(IllegalStateException("No user"))
         user.value = current.copy(email = email, isAnonymous = false)
         return Result.success(Unit)
@@ -112,6 +121,7 @@ class FakeAuthRepository : AuthRepository {
 
 class FakeSyncScheduler : com.bookmarkapp.queuemark.data.remote.SyncScheduler {
     var syncRequests = 0
+    var cancelAllCalled = false
     val reminders = mutableListOf<Pair<String, Long>>()
 
     override fun requestSync() {
@@ -125,6 +135,15 @@ class FakeSyncScheduler : com.bookmarkapp.queuemark.data.remote.SyncScheduler {
     override fun cancelReminder(bookmarkId: String) {
         reminders.removeAll { it.first == bookmarkId }
     }
+
+    override fun cancelAllReminders() {
+        cancelAllCalled = true
+        reminders.clear()
+    }
+}
+
+class FakeGuestSessionStore : com.bookmarkapp.queuemark.data.local.GuestSessionStore {
+    override var isGuest: Boolean = false
 }
 
 class FakeUrlMetadataService : UrlMetadataService {
