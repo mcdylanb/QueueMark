@@ -10,7 +10,8 @@ import org.jsoup.Jsoup
 data class UrlMetadata(
     val title: String?,
     val description: String?,
-    val wordCount: Int
+    val wordCount: Int,
+    val content: String? = null
 )
 
 interface UrlMetadataService {
@@ -42,7 +43,12 @@ class JsoupUrlMetadataService @Inject constructor(
                 ?.split(WHITESPACE)?.count { it.isNotBlank() }
                 ?: 0
 
-            UrlMetadata(title = title, description = description, wordCount = wordCount)
+            UrlMetadata(
+                title = title,
+                description = description,
+                wordCount = wordCount,
+                content = ReadableContentExtractor.extract(document)
+            )
         }
     }
 

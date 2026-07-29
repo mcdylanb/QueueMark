@@ -219,6 +219,7 @@ class DashboardViewModel @Inject constructor(
                     ?: metadata?.title
                     ?: url,
                 description = metadata?.description,
+                content = metadata?.content,
                 estimatedReadTime = ReadTimeCalculator.estimateMinutes(metadata?.wordCount ?: 0),
                 createdAt = timeProvider.now(),
                 reminderTime = null,

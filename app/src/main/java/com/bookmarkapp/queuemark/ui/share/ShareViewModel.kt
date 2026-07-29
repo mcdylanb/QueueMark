@@ -73,6 +73,7 @@ class ShareViewModel @Inject constructor(
                     url = url,
                     title = metadata?.title ?: url,
                     description = metadata?.description,
+                    content = metadata?.content,
                     estimatedReadTime = ReadTimeCalculator.estimateMinutes(
                         metadata?.wordCount ?: 0
                     ),
