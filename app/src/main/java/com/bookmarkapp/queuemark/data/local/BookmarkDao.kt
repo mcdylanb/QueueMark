@@ -54,4 +54,7 @@ interface BookmarkDao {
 
     @Query("UPDATE bookmarks SET reminderTime = :reminderTime, isSynced = 0 WHERE id = :id")
     suspend fun setReminder(id: String, reminderTime: Long?)
+
+    @Query("DELETE FROM bookmarks")
+    suspend fun clearAll()
 }

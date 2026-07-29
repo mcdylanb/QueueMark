@@ -37,7 +37,10 @@ data class DashboardUiState(
     val isAddSheetVisible: Boolean = false,
     val isSavingBookmark: Boolean = false,
     val hasPendingSync: Boolean = false,
-    val userMessage: String? = null
+    val userMessage: String? = null,
+    val isAnonymous: Boolean = false,
+    val isLinkAccountDialogVisible: Boolean = false,
+    val isLinking: Boolean = false
 ) {
     val isSearching: Boolean get() = searchQuery.isNotBlank()
 }
@@ -51,6 +54,10 @@ sealed interface DashboardUiAction {
     data object OnDismissSheet : DashboardUiAction
     data class OnAddBookmark(val url: String, val title: String?) : DashboardUiAction
     data object OnMessageShown : DashboardUiAction
+    data object OnLogoutClick : DashboardUiAction
+    data object OnLinkAccountClick : DashboardUiAction
+    data object OnDismissLinkDialog : DashboardUiAction
+    data class OnSubmitLinkAccount(val email: String, val password: String) : DashboardUiAction
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,7 +66,7 @@ class DashboardViewModel @Inject constructor(
     private val repository: BookmarkRepository,
     private val metadataService: UrlMetadataService,
     private val timeProvider: TimeProvider,
-    authRepository: AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private data class Controls(
@@ -68,7 +75,10 @@ class DashboardViewModel @Inject constructor(
         val selectedTab: DashboardTab = DashboardTab.UNREAD,
         val isAddSheetVisible: Boolean = false,
         val isSavingBookmark: Boolean = false,
-        val userMessage: String? = null
+        val userMessage: String? = null,
+        val isAnonymous: Boolean = false,
+        val isLinkAccountDialogVisible: Boolean = false,
+        val isLinking: Boolean = false
     )
 
     private val controls = MutableStateFlow(Controls())
@@ -98,7 +108,10 @@ class DashboardViewModel @Inject constructor(
             isAddSheetVisible = c.isAddSheetVisible,
             isSavingBookmark = c.isSavingBookmark,
             hasPendingSync = (unread + completed).any { !it.isSynced },
-            userMessage = c.userMessage
+            userMessage = c.userMessage,
+            isAnonymous = c.isAnonymous,
+            isLinkAccountDialogVisible = c.isLinkAccountDialogVisible,
+            isLinking = c.isLinking
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
 
@@ -108,7 +121,8 @@ class DashboardViewModel @Inject constructor(
                 controls.update {
                     it.copy(
                         userLabel = user?.email?.substringBefore('@')?.takeIf { p -> p.isNotBlank() }
-                            ?: "Reader"
+                            ?: if (user?.isAnonymous == true) "Guest" else "Reader",
+                        isAnonymous = user?.isAnonymous ?: false // Track anonymous state
                     )
                 }
             }
@@ -142,6 +156,44 @@ class DashboardViewModel @Inject constructor(
                 } ?: return@launch
                 repository.setCompleted(action.id, !current.isCompleted)
                     .onFailure { showMessage("Couldn't update bookmark") }
+            }
+
+            is DashboardUiAction.OnLogoutClick -> {
+                viewModelScope.launch {
+                    repository.clearAll() // clear cache
+
+                    authRepository.signOut() // sign out of firebase
+                }
+            }
+
+            DashboardUiAction.OnLinkAccountClick ->
+                controls.update { it.copy(isLinkAccountDialogVisible = true) }
+
+            DashboardUiAction.OnDismissLinkDialog ->
+                controls.update { it.copy(isLinkAccountDialogVisible = false) }
+
+            is DashboardUiAction.OnSubmitLinkAccount -> viewModelScope.launch {
+                controls.update { it.copy(isLinking = true) }
+                authRepository.linkWithEmail(action.email, action.password)
+                    .onSuccess {
+                        controls.update {
+                            it.copy(
+                                isLinking = false,
+                                isLinkAccountDialogVisible = false,
+                                userMessage = "Account saved!",
+                                isAnonymous = false,
+                                userLabel = action.email.substringBefore('@')
+                            )
+                        }
+                    }
+                    .onFailure { error ->
+                        controls.update {
+                            it.copy(
+                                isLinking = false,
+                                userMessage = error.localizedMessage ?: "Failed to link account"
+                            )
+                        }
+                    }
             }
 
             DashboardUiAction.OnMessageShown ->

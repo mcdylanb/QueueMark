@@ -18,4 +18,5 @@ interface BookmarkRepository {
 
     suspend fun getUnsynced(): List<Bookmark>
     suspend fun markSynced(id: String): Result<Unit>
+    suspend fun clearAll()
 }
