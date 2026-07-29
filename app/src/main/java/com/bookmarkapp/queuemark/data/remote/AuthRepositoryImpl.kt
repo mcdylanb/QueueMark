@@ -2,6 +2,7 @@ package com.bookmarkapp.queuemark.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.EmailAuthProvider
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
@@ -45,6 +46,13 @@ class AuthRepositoryImpl @Inject constructor(
     override fun signOut() {
         firebaseAuth.signOut()
     }
+
+    override suspend fun linkWithEmail(email: String, password: String): Result<Unit> =
+        runCatching {
+            val credential = EmailAuthProvider.getCredential(email, password)
+            firebaseAuth.currentUser?.linkWithCredential(credential)?.await()
+            Unit
+        }
 
     private fun FirebaseUser.toAuthUser() = AuthUser(
         uid = uid,

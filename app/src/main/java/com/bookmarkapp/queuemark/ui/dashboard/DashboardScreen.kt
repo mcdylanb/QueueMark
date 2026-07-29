@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -48,6 +50,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -125,7 +129,9 @@ fun DashboardScreen(
                 DashboardHeader(
                     userLabel = state.userLabel,
                     hasPendingSync = state.hasPendingSync,
-                    onLogoutClick = { onAction(DashboardUiAction.OnLogoutClick) }
+                    isAnonymous = state.isAnonymous,
+                    onLogoutClick = { onAction(DashboardUiAction.OnLogoutClick) },
+                    onLinkAccountClick = { onAction(DashboardUiAction.OnLinkAccountClick) }
                 )
             }
 
@@ -228,10 +234,85 @@ fun DashboardScreen(
             onDismiss = { onAction(DashboardUiAction.OnDismissSheet) }
         )
     }
+
+    if (state.isLinkAccountDialogVisible) {
+        LinkAccountDialog(
+            isLinking = state.isLinking,
+            onDismiss = { onAction(DashboardUiAction.OnDismissLinkDialog) },
+            onSubmit = { email, password ->
+                onAction(DashboardUiAction.OnSubmitLinkAccount(email, password))
+            }
+        )
+    }
 }
 
 @Composable
-private fun DashboardHeader(userLabel: String, hasPendingSync: Boolean, onLogoutClick: () -> Unit) {
+private fun LinkAccountDialog(
+    isLinking: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String, String) -> Unit
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = { if (!isLinking) onDismiss() },
+        title = { Text("Save your bookmarks") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Create an account to save your offline queue permanently.")
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.Button(
+                onClick = { onSubmit(email.trim(), password) },
+                enabled = email.isNotBlank() && password.length >= 6 && !isLinking
+            ) {
+                if (isLinking) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Save Account")
+                }
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(
+                onClick = onDismiss,
+                enabled = !isLinking
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DashboardHeader(
+    userLabel: String,
+    hasPendingSync: Boolean,
+    isAnonymous: Boolean,
+    onLogoutClick: () -> Unit,
+    onLinkAccountClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -263,12 +344,22 @@ private fun DashboardHeader(userLabel: String, hasPendingSync: Boolean, onLogout
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        IconButton(onClick = onLogoutClick) {
-            Icon(
-                imageVector = Icons.Filled.Logout,
-                contentDescription = "Log Out",
-                tint = MaterialTheme.colorScheme.error // Or use onBackground
-            )
+        if (isAnonymous) {
+            IconButton(onClick = onLinkAccountClick) {
+                Icon(
+                    imageVector = Icons.Filled.PersonAdd,
+                    contentDescription = "Save Account",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            IconButton(onClick = onLogoutClick) {
+                Icon(
+                    imageVector = Icons.Filled.Logout,
+                    contentDescription = "Log Out",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }
