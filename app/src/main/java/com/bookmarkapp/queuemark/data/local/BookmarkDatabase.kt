@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [BookmarkEntity::class], version = 2, exportSchema = false)
+@Database(entities = [BookmarkEntity::class], version = 3, exportSchema = false)
 abstract class BookmarkDatabase : RoomDatabase() {
     abstract fun bookmarkDao(): BookmarkDao
 
@@ -14,6 +14,16 @@ abstract class BookmarkDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE bookmarks ADD COLUMN content TEXT")
+            }
+        }
+
+        // v3 adds the delete tombstone (isDeleted) so deletions sync to
+        // Firestore instead of resurrecting via the remote mirror.
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE bookmarks ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0"
+                )
             }
         }
     }

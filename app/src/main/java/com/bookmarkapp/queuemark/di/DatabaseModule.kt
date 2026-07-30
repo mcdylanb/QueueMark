@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): BookmarkDatabase =
         Room.databaseBuilder(context, BookmarkDatabase::class.java, "queuemark.db")
-            .addMigrations(BookmarkDatabase.MIGRATION_1_2)
+            .addMigrations(BookmarkDatabase.MIGRATION_1_2, BookmarkDatabase.MIGRATION_2_3)
             .build()
 
     @Provides
