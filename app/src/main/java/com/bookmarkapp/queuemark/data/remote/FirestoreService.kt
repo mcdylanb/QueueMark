@@ -28,7 +28,8 @@ class FirestoreService @Inject constructor(
                     "createdAt" to bookmark.createdAt,
                     "reminderTime" to bookmark.reminderTime,
                     "isCompleted" to bookmark.isCompleted,
-                    "completedAt" to bookmark.completedAt
+                    "completedAt" to bookmark.completedAt,
+                    "isDeleted" to bookmark.isDeleted
                 )
             ).await()
             Unit
@@ -52,6 +53,7 @@ class FirestoreService @Inject constructor(
                     createdAt = doc.getLong("createdAt") ?: 0L,
                     reminderTime = doc.getLong("reminderTime"),
                     isCompleted = doc.getBoolean("isCompleted") ?: false,
+                    isDeleted = doc.getBoolean("isDeleted") ?: false,
                     completedAt = doc.getLong("completedAt"),
                     isSynced = true
                 )
