@@ -34,7 +34,7 @@ fun BookmarkEntity.toDomain(): Bookmark = Bookmark(
     isCompleted = isCompleted,
     completedAt = completedAt,
     isSynced = isSynced,
-    isDeleted = false
+    isDeleted = isDeleted
 )
 
 fun Bookmark.toEntity(): BookmarkEntity = BookmarkEntity(
@@ -49,5 +49,5 @@ fun Bookmark.toEntity(): BookmarkEntity = BookmarkEntity(
     isCompleted = isCompleted,
     completedAt = completedAt,
     isSynced = isSynced,
-    isDeleted = false
+    isDeleted = isDeleted
 )

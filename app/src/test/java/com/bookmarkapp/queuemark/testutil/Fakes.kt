@@ -22,15 +22,15 @@ class FakeBookmarkRepository : BookmarkRepository {
     private fun sorted(predicate: (Bookmark) -> Boolean) =
         rows.map { map -> map.values.filter(predicate).sortedBy { it.createdAt } }
 
-    override fun observeActive(): Flow<List<Bookmark>> = sorted { !it.isCompleted }
-    override fun observeCompleted(): Flow<List<Bookmark>> = sorted { it.isCompleted }
+    override fun observeActive(): Flow<List<Bookmark>> = sorted { !it.isCompleted && !it.isDeleted }
+    override fun observeCompleted(): Flow<List<Bookmark>> = sorted { it.isCompleted && !it.isDeleted }
     override fun observeQuickWins(): Flow<List<Bookmark>> =
-        sorted { !it.isCompleted && it.estimatedReadTime < 5 }
+        sorted { !it.isCompleted && !it.isDeleted && it.estimatedReadTime < 5 }
 
     override fun search(query: String): Flow<List<Bookmark>> = sorted {
-        it.title.contains(query, true) ||
+        !it.isDeleted && (it.title.contains(query, true) ||
             it.description?.contains(query, true) == true ||
-            it.url.contains(query, true)
+            it.url.contains(query, true))
     }
 
     override fun observeById(id: String): Flow<Bookmark?> = rows.map { it[id] }
@@ -41,7 +41,11 @@ class FakeBookmarkRepository : BookmarkRepository {
 
     override suspend fun update(bookmark: Bookmark): Result<Unit> = add(bookmark)
 
-    override suspend fun delete(id: String): Result<Unit> = write { rows.value -= id }
+    override suspend fun delete(id: String): Result<Unit> = write {
+        rows.value[id]?.let {
+            rows.value += id to it.copy(isDeleted = true, isSynced = false)
+        }
+    }
 
     override suspend fun setCompleted(id: String, completed: Boolean): Result<Unit> = write {
         rows.value[id]?.let {
@@ -165,5 +169,6 @@ fun testBookmark(
     reminderTime = null,
     isCompleted = isCompleted,
     completedAt = null,
-    isSynced = true
+    isSynced = true,
+    isDeleted = false
 )
