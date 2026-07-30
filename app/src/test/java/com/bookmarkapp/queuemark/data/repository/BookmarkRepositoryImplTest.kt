@@ -24,17 +24,17 @@ private class FakeBookmarkDao : BookmarkDao {
     private fun sorted(predicate: (BookmarkEntity) -> Boolean) =
         rows.map { map -> map.values.filter(predicate).sortedBy { it.createdAt } }
 
-    override fun observeActive(): Flow<List<BookmarkEntity>> = sorted { !it.isCompleted }
+    override fun observeActive(): Flow<List<BookmarkEntity>> = sorted { !it.isCompleted && !it.isDeleted }
 
-    override fun observeCompleted(): Flow<List<BookmarkEntity>> = sorted { it.isCompleted }
+    override fun observeCompleted(): Flow<List<BookmarkEntity>> = sorted { it.isCompleted && !it.isDeleted }
 
     override fun observeQuickWins(): Flow<List<BookmarkEntity>> =
-        sorted { !it.isCompleted && it.estimatedReadTime < 5 }
+        sorted { !it.isCompleted && !it.isDeleted && it.estimatedReadTime < 5 }
 
     override fun search(query: String): Flow<List<BookmarkEntity>> = sorted {
-        it.title.contains(query, true) ||
+        !it.isDeleted && (it.title.contains(query, true) ||
             it.description?.contains(query, true) == true ||
-            it.url.contains(query, true)
+            it.url.contains(query, true))
     }
 
     override fun observeById(id: String): Flow<BookmarkEntity?> = rows.map { it[id] }
@@ -48,7 +48,13 @@ private class FakeBookmarkDao : BookmarkDao {
         rows.value = rows.value + (bookmark.id to bookmark)
     }
 
-    override suspend fun deleteById(id: String) {
+    override suspend fun softDelete(id: String) {
+        rows.value[id]?.let {
+            rows.value = rows.value + (id to it.copy(isDeleted = true, isSynced = false))
+        }
+    }
+
+    override suspend fun permanentlyDelete(id: String) {
         rows.value = rows.value - id
     }
 
@@ -116,7 +122,8 @@ class BookmarkRepositoryImplTest {
         reminderTime = null,
         isCompleted = false,
         completedAt = null,
-        isSynced = true
+        isSynced = true,
+        isDeleted = false
     )
 
     @Test
@@ -151,11 +158,13 @@ class BookmarkRepositoryImplTest {
     }
 
     @Test
-    fun `delete removes row and requests sync`() = runTest {
+    fun `delete marks row as deleted and requests sync`() = runTest {
         repository.add(bookmark())
         repository.delete("b1")
 
-        assertTrue(dao.rows.value.isEmpty())
+        val row = dao.rows.value.getValue("b1")
+        assertTrue(row.isDeleted)
+        assertFalse(row.isSynced)
         assertEquals(2, syncScheduler.syncRequests)
     }
 

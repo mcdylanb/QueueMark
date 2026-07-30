@@ -29,7 +29,7 @@ import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -83,6 +83,14 @@ fun DashboardRoute(
     DashboardScreen(
         state = state,
         onAction = viewModel::onAction,
+        onAction = { action ->
+            viewModel.onAction(action)
+
+            // trigger the navigation when the logout action fires
+            if (action is DashboardUiAction.OnLogoutClick || action is DashboardUiAction.OnExitGuestModeClick) {
+                onNavigateToAuth()
+            }
+        },
         onBookmarkClick = onBookmarkClick
     )
 }
@@ -130,8 +138,8 @@ fun DashboardScreen(
                     userLabel = state.userLabel,
                     hasPendingSync = state.hasPendingSync,
                     isAnonymous = state.isAnonymous,
+                    onExitGuestModeClick = { onAction(DashboardUiAction.OnExitGuestModeClick) },
                     onLogoutClick = { onAction(DashboardUiAction.OnLogoutClick) },
-                    onLinkAccountClick = { onAction(DashboardUiAction.OnLinkAccountClick) }
                 )
             }
 
@@ -370,7 +378,7 @@ private fun DashboardHeader(
     hasPendingSync: Boolean,
     isAnonymous: Boolean,
     onLogoutClick: () -> Unit,
-    onLinkAccountClick: () -> Unit
+    onExitGuestModeClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -404,10 +412,10 @@ private fun DashboardHeader(
         Spacer(modifier = Modifier.width(8.dp))
 
         if (isAnonymous) {
-            IconButton(onClick = onLinkAccountClick) {
+            IconButton(onClick = onExitGuestModeClick) {
                 Icon(
-                    imageVector = Icons.Filled.PersonAdd,
-                    contentDescription = "Save Account",
+                    imageVector = Icons.Filled.ArrowBackIosNew,
+                    contentDescription = "Back to Login",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -559,7 +567,8 @@ private val previewBookmarks = listOf(
         reminderTime = null,
         isCompleted = false,
         completedAt = null,
-        isSynced = true
+        isSynced = true,
+        isDeleted = false
     ),
     Bookmark(
         id = "2",
@@ -571,7 +580,8 @@ private val previewBookmarks = listOf(
         reminderTime = null,
         isCompleted = false,
         completedAt = null,
-        isSynced = false
+        isSynced = false,
+        isDeleted = false
     )
 )
 

@@ -432,7 +432,8 @@ private val previewBookmark = Bookmark(
     reminderTime = null,
     isCompleted = false,
     completedAt = null,
-    isSynced = true
+    isSynced = true,
+    isDeleted = false
 )
 
 // Whole-screen web-mode previews are omitted because WebView cannot render in

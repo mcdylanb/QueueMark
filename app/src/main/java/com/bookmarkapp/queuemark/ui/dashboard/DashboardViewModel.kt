@@ -59,6 +59,7 @@ sealed interface DashboardUiAction {
     data object OnDismissSheet : DashboardUiAction
     data class OnAddBookmark(val url: String, val title: String?) : DashboardUiAction
     data object OnMessageShown : DashboardUiAction
+    data object OnExitGuestModeClick : DashboardUiAction
     data object OnLogoutClick : DashboardUiAction
     data object OnConfirmLogout : DashboardUiAction
     data object OnDismissLogoutWarning : DashboardUiAction
@@ -275,6 +276,18 @@ class DashboardViewModel @Inject constructor(
                     }
             }
 
+            DashboardUiAction.OnExitGuestModeClick -> {
+                // Do nothing here. The UI layer (DashboardRoute) intercepts
+                // this action and handles the navigation.
+            }
+
+            is DashboardUiAction.OnLogoutClick -> {
+                viewModelScope.launch {
+                    repository.clearAll() // clear cache
+                    authRepository.signOut() // sign out of firebase
+                }
+            }
+
             DashboardUiAction.OnMessageShown ->
                 controls.update { it.copy(userMessage = null) }
         }
@@ -304,7 +317,8 @@ class DashboardViewModel @Inject constructor(
                 reminderTime = null,
                 isCompleted = false,
                 completedAt = null,
-                isSynced = false
+                isSynced = false,
+                isDeleted = false
             )
 
             repository.add(bookmark)

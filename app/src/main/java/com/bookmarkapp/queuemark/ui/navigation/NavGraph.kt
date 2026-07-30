@@ -44,8 +44,8 @@ fun QueuemarkNavGraph(
             val viewModel: AuthViewModel = hiltViewModel()
             val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-            LaunchedEffect(state.isAuthenticated) {
-                if (state.isAuthenticated) {
+            LaunchedEffect(state.isAuthComplete) {
+                if (state.isAuthComplete) {
                     navController.navigate(QueuemarkDestinations.DASHBOARD_ROUTE) {
                         popUpTo(QueuemarkDestinations.AUTH_ROUTE) { inclusive = true }
                     }

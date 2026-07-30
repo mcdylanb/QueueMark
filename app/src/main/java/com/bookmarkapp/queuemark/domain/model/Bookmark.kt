@@ -11,5 +11,6 @@ data class Bookmark(
     val reminderTime: Long?,
     val isCompleted: Boolean,
     val completedAt: Long?,
-    val isSynced: Boolean
+    val isSynced: Boolean,
+    val isDeleted: Boolean
 )
