@@ -1,5 +1,7 @@
 package com.bookmarkapp.queuemark.di
 
+import com.bookmarkapp.queuemark.data.local.GuestSessionStore
+import com.bookmarkapp.queuemark.data.local.PrefsGuestSessionStore
 import com.bookmarkapp.queuemark.data.remote.AuthRepository
 import com.bookmarkapp.queuemark.data.remote.AuthRepositoryImpl
 import com.bookmarkapp.queuemark.data.remote.JsoupUrlMetadataService
@@ -33,4 +35,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUrlMetadataService(impl: JsoupUrlMetadataService): UrlMetadataService
+
+    @Binds
+    @Singleton
+    abstract fun bindGuestSessionStore(impl: PrefsGuestSessionStore): GuestSessionStore
 }

@@ -73,8 +73,16 @@ fun DashboardRoute(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Navigate only once the logout actually completed — OnLogoutClick may
+    // first show the unsynced-changes warning instead of logging out.
+    LaunchedEffect(state.loggedOut) {
+        if (state.loggedOut) onNavigateToAuth()
+    }
+
     DashboardScreen(
         state = state,
+        onAction = viewModel::onAction,
         onAction = { action ->
             viewModel.onAction(action)
 
@@ -234,6 +242,134 @@ fun DashboardScreen(
             onDismiss = { onAction(DashboardUiAction.OnDismissSheet) }
         )
     }
+
+    if (state.isLinkAccountDialogVisible) {
+        LinkAccountDialog(
+            isLinking = state.isLinking,
+            isSignInMode = state.isLinkDialogSignInMode,
+            onDismiss = { onAction(DashboardUiAction.OnDismissLinkDialog) },
+            onToggleMode = { onAction(DashboardUiAction.OnToggleLinkDialogMode) },
+            onSubmit = { email, password ->
+                if (state.isLinkDialogSignInMode) {
+                    onAction(DashboardUiAction.OnSubmitSignIn(email, password))
+                } else {
+                    onAction(DashboardUiAction.OnSubmitLinkAccount(email, password))
+                }
+            }
+        )
+    }
+
+    state.logoutWarningCount?.let { count ->
+        AlertDialog(
+            onDismissRequest = { onAction(DashboardUiAction.OnDismissLogoutWarning) },
+            title = { Text("Unsynced changes") },
+            text = {
+                Text(
+                    "$count change${if (count == 1) "" else "s"} on this device " +
+                        "haven't synced to the cloud yet and will be lost if you " +
+                        "sign out now. Connect to the internet to sync first."
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { onAction(DashboardUiAction.OnConfirmLogout) }
+                ) {
+                    Text(
+                        "Sign out anyway",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { onAction(DashboardUiAction.OnDismissLogoutWarning) }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun LinkAccountDialog(
+    isLinking: Boolean,
+    isSignInMode: Boolean,
+    onDismiss: () -> Unit,
+    onToggleMode: () -> Unit,
+    onSubmit: (String, String) -> Unit
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = { if (!isLinking) onDismiss() },
+        title = { Text(if (isSignInMode) "Sign in" else "Save your bookmarks") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (isSignInMode) {
+                        "Sign in to your existing account. The bookmarks saved " +
+                            "on this device as a guest will be replaced by your " +
+                            "account's queue."
+                    } else {
+                        "Create an account to save your offline queue permanently."
+                    }
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
+                androidx.compose.material3.TextButton(
+                    onClick = onToggleMode,
+                    enabled = !isLinking
+                ) {
+                    Text(
+                        if (isSignInMode) {
+                            "New here? Create an account instead"
+                        } else {
+                            "Already have an account? Sign in"
+                        }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.Button(
+                onClick = { onSubmit(email.trim(), password) },
+                enabled = email.isNotBlank() && password.length >= 6 && !isLinking
+            ) {
+                if (isLinking) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(if (isSignInMode) "Sign In" else "Save Account")
+                }
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(
+                onClick = onDismiss,
+                enabled = !isLinking
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

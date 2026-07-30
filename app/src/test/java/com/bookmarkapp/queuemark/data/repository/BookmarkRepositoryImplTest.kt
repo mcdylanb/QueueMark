@@ -96,6 +96,7 @@ private class RecordingSyncScheduler : SyncScheduler {
 
     override fun scheduleReminder(bookmarkId: String, triggerAtMillis: Long) = Unit
     override fun cancelReminder(bookmarkId: String) = Unit
+    override fun cancelAllReminders() = Unit
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

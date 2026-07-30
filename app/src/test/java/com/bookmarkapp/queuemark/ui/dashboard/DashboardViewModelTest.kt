@@ -3,6 +3,8 @@ package com.bookmarkapp.queuemark.ui.dashboard
 import com.bookmarkapp.queuemark.data.remote.UrlMetadata
 import com.bookmarkapp.queuemark.testutil.FakeAuthRepository
 import com.bookmarkapp.queuemark.testutil.FakeBookmarkRepository
+import com.bookmarkapp.queuemark.testutil.FakeGuestSessionStore
+import com.bookmarkapp.queuemark.testutil.FakeSyncScheduler
 import com.bookmarkapp.queuemark.testutil.FakeUrlMetadataService
 import com.bookmarkapp.queuemark.testutil.MainDispatcherRule
 import com.bookmarkapp.queuemark.testutil.collectEagerly
@@ -26,6 +28,8 @@ class DashboardViewModelTest {
     private val metadataService = FakeUrlMetadataService()
     private val clock = MutableTimeProvider(nowMillis = 42L)
     private val authRepository = FakeAuthRepository()
+    private val guestStore = FakeGuestSessionStore()
+    private val syncScheduler = FakeSyncScheduler()
 
     private lateinit var viewModel: DashboardViewModel
 
@@ -35,7 +39,9 @@ class DashboardViewModelTest {
             repository = repository,
             metadataService = metadataService,
             timeProvider = clock,
-            authRepository = authRepository
+            authRepository = authRepository,
+            guestStore = guestStore,
+            syncScheduler = syncScheduler
         )
     }
 
@@ -128,6 +134,105 @@ class DashboardViewModelTest {
         viewModel.onAction(DashboardUiAction.OnToggleComplete("b1"))
 
         assertTrue(repository.rows.value.getValue("b1").isCompleted)
+    }
+
+    // --- account lifecycle (phase 7) ---
+
+    @Test
+    fun `logout with no dirty rows proceeds and cleans device-global state`() = runTest {
+        repository.seed(testBookmark("b1").copy(isSynced = true))
+        guestStore.isGuest = true
+        collectEagerly(viewModel.uiState)
+
+        viewModel.onAction(DashboardUiAction.OnLogoutClick)
+
+        assertTrue(viewModel.uiState.value.loggedOut)
+        assertTrue(syncScheduler.cancelAllCalled)
+        assertTrue(repository.rows.value.isEmpty())
+        assertFalse(guestStore.isGuest)
+    }
+
+    @Test
+    fun `logout with dirty rows warns instead of wiping`() = runTest {
+        repository.seed(testBookmark("dirty").copy(isSynced = false))
+        collectEagerly(viewModel.uiState)
+
+        viewModel.onAction(DashboardUiAction.OnLogoutClick)
+
+        assertEquals(1, viewModel.uiState.value.logoutWarningCount)
+        assertFalse(viewModel.uiState.value.loggedOut)
+        assertFalse(repository.rows.value.isEmpty()) // nothing wiped yet
+
+        viewModel.onAction(DashboardUiAction.OnConfirmLogout)
+        assertTrue(viewModel.uiState.value.loggedOut)
+        assertTrue(repository.rows.value.isEmpty())
+    }
+
+    @Test
+    fun `dismissing the logout warning keeps the session`() = runTest {
+        repository.seed(testBookmark("dirty").copy(isSynced = false))
+        collectEagerly(viewModel.uiState)
+
+        viewModel.onAction(DashboardUiAction.OnLogoutClick)
+        viewModel.onAction(DashboardUiAction.OnDismissLogoutWarning)
+
+        assertEquals(null, viewModel.uiState.value.logoutWarningCount)
+        assertFalse(viewModel.uiState.value.loggedOut)
+        assertFalse(repository.rows.value.isEmpty())
+    }
+
+    @Test
+    fun `local guest without firebase user is labeled Guest with account actions`() = runTest {
+        guestStore.isGuest = true
+        // recreate so the init collector sees the guest flag
+        viewModel = DashboardViewModel(
+            repository, metadataService, clock, authRepository, guestStore, syncScheduler
+        )
+        collectEagerly(viewModel.uiState)
+
+        assertEquals("Guest", viewModel.uiState.value.userLabel)
+        assertTrue(viewModel.uiState.value.isAnonymous)
+    }
+
+    @Test
+    fun `linking with no firebase user routes to sign-up and clears guest flag`() = runTest {
+        guestStore.isGuest = true
+        collectEagerly(viewModel.uiState)
+
+        viewModel.onAction(DashboardUiAction.OnSubmitLinkAccount("a@b.com", "secret1"))
+
+        assertEquals(1, authRepository.signUpCalls)
+        assertEquals(0, authRepository.linkCalls)
+        assertFalse(guestStore.isGuest)
+    }
+
+    @Test
+    fun `linking with an anonymous user uses linkWithEmail`() = runTest {
+        authRepository.signInAnonymously()
+        collectEagerly(viewModel.uiState)
+
+        viewModel.onAction(DashboardUiAction.OnSubmitLinkAccount("a@b.com", "secret1"))
+
+        assertEquals(0, authRepository.signUpCalls)
+        assertEquals(1, authRepository.linkCalls)
+    }
+
+    @Test
+    fun `guest sign-in to existing account replaces local data on success only`() = runTest {
+        guestStore.isGuest = true
+        repository.seed(testBookmark("guest-row"))
+        collectEagerly(viewModel.uiState)
+
+        authRepository.failEmailSignIn = true
+        viewModel.onAction(DashboardUiAction.OnSubmitSignIn("a@b.com", "wrong99"))
+        assertFalse(repository.rows.value.isEmpty()) // failed sign-in touches nothing
+        assertTrue(guestStore.isGuest)
+
+        authRepository.failEmailSignIn = false
+        viewModel.onAction(DashboardUiAction.OnSubmitSignIn("a@b.com", "secret1"))
+        assertTrue(repository.rows.value.isEmpty()) // replace semantics
+        assertTrue(syncScheduler.cancelAllCalled)
+        assertFalse(guestStore.isGuest)
     }
 
     @Test

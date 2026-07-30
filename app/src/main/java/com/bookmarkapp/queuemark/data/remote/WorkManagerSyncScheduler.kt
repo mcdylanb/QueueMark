@@ -1,5 +1,6 @@
 package com.bookmarkapp.queuemark.data.remote
 
+import android.app.NotificationManager
 import android.content.Context
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -40,6 +41,7 @@ class WorkManagerSyncScheduler @Inject constructor(
         val request = OneTimeWorkRequestBuilder<NotificationWorker>()
             .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
             .setInputData(workDataOf(NotificationWorker.KEY_BOOKMARK_ID to bookmarkId))
+            .addTag(REMINDER_TAG)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             reminderWorkName(bookmarkId),
@@ -52,9 +54,17 @@ class WorkManagerSyncScheduler @Inject constructor(
         WorkManager.getInstance(context).cancelUniqueWork(reminderWorkName(bookmarkId))
     }
 
+    override fun cancelAllReminders() {
+        WorkManager.getInstance(context).cancelAllWorkByTag(REMINDER_TAG)
+        val manager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancelAll()
+    }
+
     private fun reminderWorkName(bookmarkId: String) = "reminder_$bookmarkId"
 
     private companion object {
         const val SYNC_WORK_NAME = "bookmark_sync"
+        const val REMINDER_TAG = "reminder"
     }
 }
