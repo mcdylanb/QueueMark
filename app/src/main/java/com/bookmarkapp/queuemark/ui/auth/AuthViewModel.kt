@@ -3,6 +3,7 @@ package com.bookmarkapp.queuemark.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookmarkapp.queuemark.data.remote.AuthRepository
+import com.bookmarkapp.queuemark.data.remote.SyncScheduler
 import com.bookmarkapp.queuemark.data.repository.BookmarkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -42,7 +43,8 @@ sealed interface AuthUiAction {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val bookmarkRepository: BookmarkRepository // wipes data on Sign In
+    private val bookmarkRepository: BookmarkRepository, // wipes data on Sign In
+    private val syncScheduler: SyncScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -88,7 +90,13 @@ class AuthViewModel @Inject constructor(
 
             AuthUiAction.OnConfirmSignUp -> authenticate {
                 _uiState.update { it.copy(showSignUpPrompt = false) }
-                authRepository.linkWithEmail(uiState.value.email.trim(), uiState.value.password) // Save data to new account
+                val result = authRepository.linkWithEmail(uiState.value.email.trim(), uiState.value.password) // Save data to new account
+
+                if (result.isSuccess) {
+                    syncScheduler.requestSync() // sync data to firebase
+                }
+
+                result
             }
 
             AuthUiAction.OnDismissPrompt ->
