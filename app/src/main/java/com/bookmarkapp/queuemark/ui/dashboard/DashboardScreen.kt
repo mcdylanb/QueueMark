@@ -82,12 +82,14 @@ fun DashboardRoute(
 
     DashboardScreen(
         state = state,
-        onAction = viewModel::onAction,
         onAction = { action ->
             viewModel.onAction(action)
 
-            // trigger the navigation when the logout action fires
-            if (action is DashboardUiAction.OnLogoutClick || action is DashboardUiAction.OnExitGuestModeClick) {
+            // Exit-guest-mode navigation is handled here by design (the VM
+            // no-ops it); logout navigation instead waits for the completed
+            // state above, because OnLogoutClick may only open the
+            // unsynced-changes warning.
+            if (action is DashboardUiAction.OnExitGuestModeClick) {
                 onNavigateToAuth()
             }
         },

@@ -44,7 +44,7 @@ sealed interface AuthUiAction {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val guestStore: GuestSessionStore
+    private val guestStore: GuestSessionStore,
     private val bookmarkRepository: BookmarkRepository, // wipes data on Sign In
     private val syncScheduler: SyncScheduler
 ) : ViewModel() {
@@ -96,10 +96,12 @@ class AuthViewModel @Inject constructor(
             // app starts — see QueuemarkApplication.
             AuthUiAction.OnContinueOffline -> {
                 guestStore.isGuest = true
-                _uiState.update { it.copy(isAuthenticated = true) }
+                _uiState.update { it.copy(isAuthComplete = true) }
                 viewModelScope.launch {
                     authRepository.signInAnonymously() // best-effort; offline is fine
                 }
+            }
+
             AuthUiAction.OnConfirmSignUp -> authenticate {
                 _uiState.update { it.copy(showSignUpPrompt = false) }
                 val result = authRepository.linkWithEmail(uiState.value.email.trim(), uiState.value.password) // Save data to new account
@@ -113,10 +115,6 @@ class AuthViewModel @Inject constructor(
 
             AuthUiAction.OnDismissPrompt ->
                 _uiState.update { it.copy(showSignInPrompt = false, showSignUpPrompt = false) }
-
-            AuthUiAction.OnContinueOffline -> authenticate {
-                authRepository.signInAnonymously()
-            }
 
             AuthUiAction.OnBackToDashboardClick ->
                 _uiState.update { it.copy(isAuthComplete = true) }
