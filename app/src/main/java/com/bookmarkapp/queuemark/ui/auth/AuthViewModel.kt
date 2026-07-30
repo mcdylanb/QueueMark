@@ -86,8 +86,13 @@ class AuthViewModel @Inject constructor(
 
             AuthUiAction.OnConfirmSignIn -> authenticate {
                 _uiState.update { it.copy(showSignInPrompt = false) }
-                bookmarkRepository.clearAll() // 1. Erase Guest Data
-                authRepository.signInWithEmail(uiState.value.email.trim(), uiState.value.password) // 2. Log in
+                val res = authRepository.signInWithEmail(uiState.value.email.trim(), uiState.value.password) // 1. Log in
+
+                if (res.isSuccess) {
+                    bookmarkRepository.clearAll() // 2. Erase Guest Data
+                }
+
+                res
             }
 
             // Guest entry must work with zero network: set the local flag and
