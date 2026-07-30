@@ -3,6 +3,8 @@ package com.bookmarkapp.queuemark.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookmarkapp.queuemark.data.remote.AuthRepository
+import com.bookmarkapp.queuemark.data.remote.SyncScheduler
+import com.bookmarkapp.queuemark.data.repository.BookmarkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +18,10 @@ data class AuthUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isAuthenticated: Boolean = false
+    val isAnonymous: Boolean = false,
+    val showSignUpPrompt: Boolean = false,
+    val showSignInPrompt: Boolean = false,
+    val isAuthComplete: Boolean = false
 ) {
     val canSubmit: Boolean
         get() = email.isNotBlank() && password.length >= 6 && !isLoading
@@ -25,15 +30,21 @@ data class AuthUiState(
 sealed interface AuthUiAction {
     data class OnEmailChange(val value: String) : AuthUiAction
     data class OnPasswordChange(val value: String) : AuthUiAction
-    data object OnSignIn : AuthUiAction
-    data object OnSignUp : AuthUiAction
+    data object OnSignInClick : AuthUiAction
+    data object OnSignUpClick : AuthUiAction
+    data object OnConfirmSignIn : AuthUiAction
+    data object OnConfirmSignUp : AuthUiAction
+    data object OnDismissPrompt : AuthUiAction
+    data object OnBackToDashboardClick : AuthUiAction
     data object OnContinueOffline : AuthUiAction
     data object OnErrorDismissed : AuthUiAction
 }
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val bookmarkRepository: BookmarkRepository, // wipes data on Sign In
+    private val syncScheduler: SyncScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -42,7 +53,7 @@ class AuthViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             authRepository.authState.collect { user ->
-                _uiState.update { it.copy(isAuthenticated = user != null) }
+                _uiState.update { it.copy(isAnonymous = user?.isAnonymous == true) }
             }
         }
     }
@@ -55,17 +66,48 @@ class AuthViewModel @Inject constructor(
             is AuthUiAction.OnPasswordChange ->
                 _uiState.update { it.copy(password = action.value, error = null) }
 
-            AuthUiAction.OnSignIn -> authenticate {
-                authRepository.signInWithEmail(uiState.value.email.trim(), uiState.value.password)
+            AuthUiAction.OnSignInClick -> {
+                if (uiState.value.isAnonymous) {
+                    _uiState.update { it.copy(showSignInPrompt = true) }
+                } else {
+                    authenticate { authRepository.signInWithEmail(uiState.value.email.trim(), uiState.value.password) }
+                }
             }
 
-            AuthUiAction.OnSignUp -> authenticate {
-                authRepository.signUpWithEmail(uiState.value.email.trim(), uiState.value.password)
+            AuthUiAction.OnSignUpClick -> {
+                if (uiState.value.isAnonymous) {
+                    _uiState.update { it.copy(showSignUpPrompt = true) }
+                } else {
+                    authenticate { authRepository.signUpWithEmail(uiState.value.email.trim(), uiState.value.password) }
+                }
             }
+
+            AuthUiAction.OnConfirmSignIn -> authenticate {
+                _uiState.update { it.copy(showSignInPrompt = false) }
+                bookmarkRepository.clearAll() // 1. Erase Guest Data
+                authRepository.signInWithEmail(uiState.value.email.trim(), uiState.value.password) // 2. Log in
+            }
+
+            AuthUiAction.OnConfirmSignUp -> authenticate {
+                _uiState.update { it.copy(showSignUpPrompt = false) }
+                val result = authRepository.linkWithEmail(uiState.value.email.trim(), uiState.value.password) // Save data to new account
+
+                if (result.isSuccess) {
+                    syncScheduler.requestSync() // sync data to firebase
+                }
+
+                result
+            }
+
+            AuthUiAction.OnDismissPrompt ->
+                _uiState.update { it.copy(showSignInPrompt = false, showSignUpPrompt = false) }
 
             AuthUiAction.OnContinueOffline -> authenticate {
                 authRepository.signInAnonymously()
             }
+
+            AuthUiAction.OnBackToDashboardClick ->
+                _uiState.update { it.copy(isAuthComplete = true) }
 
             AuthUiAction.OnErrorDismissed -> _uiState.update { it.copy(error = null) }
         }
@@ -75,7 +117,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             block()
-                .onSuccess { _uiState.update { it.copy(isLoading = false) } }
+                .onSuccess { _uiState.update { it.copy(isLoading = false, isAuthComplete = true) } }
                 .onFailure { throwable ->
                     _uiState.update {
                         it.copy(

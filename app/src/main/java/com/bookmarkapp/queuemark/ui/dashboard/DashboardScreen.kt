@@ -29,7 +29,7 @@ import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,7 +79,7 @@ fun DashboardRoute(
             viewModel.onAction(action)
 
             // trigger the navigation when the logout action fires
-            if (action is DashboardUiAction.OnLogoutClick) {
+            if (action is DashboardUiAction.OnLogoutClick || action is DashboardUiAction.OnExitGuestModeClick) {
                 onNavigateToAuth()
             }
         },
@@ -130,8 +130,8 @@ fun DashboardScreen(
                     userLabel = state.userLabel,
                     hasPendingSync = state.hasPendingSync,
                     isAnonymous = state.isAnonymous,
+                    onExitGuestModeClick = { onAction(DashboardUiAction.OnExitGuestModeClick) },
                     onLogoutClick = { onAction(DashboardUiAction.OnLogoutClick) },
-                    onLinkAccountClick = { onAction(DashboardUiAction.OnLinkAccountClick) }
                 )
             }
 
@@ -234,75 +234,6 @@ fun DashboardScreen(
             onDismiss = { onAction(DashboardUiAction.OnDismissSheet) }
         )
     }
-
-    if (state.isLinkAccountDialogVisible) {
-        LinkAccountDialog(
-            isLinking = state.isLinking,
-            onDismiss = { onAction(DashboardUiAction.OnDismissLinkDialog) },
-            onSubmit = { email, password ->
-                onAction(DashboardUiAction.OnSubmitLinkAccount(email, password))
-            }
-        )
-    }
-}
-
-@Composable
-private fun LinkAccountDialog(
-    isLinking: Boolean,
-    onDismiss: () -> Unit,
-    onSubmit: (String, String) -> Unit
-) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = { if (!isLinking) onDismiss() },
-        title = { Text("Save your bookmarks") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Create an account to save your offline queue permanently.")
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                )
-            }
-        },
-        confirmButton = {
-            androidx.compose.material3.Button(
-                onClick = { onSubmit(email.trim(), password) },
-                enabled = email.isNotBlank() && password.length >= 6 && !isLinking
-            ) {
-                if (isLinking) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Save Account")
-                }
-            }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(
-                onClick = onDismiss,
-                enabled = !isLinking
-            ) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @Composable
@@ -311,7 +242,7 @@ private fun DashboardHeader(
     hasPendingSync: Boolean,
     isAnonymous: Boolean,
     onLogoutClick: () -> Unit,
-    onLinkAccountClick: () -> Unit
+    onExitGuestModeClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -345,10 +276,10 @@ private fun DashboardHeader(
         Spacer(modifier = Modifier.width(8.dp))
 
         if (isAnonymous) {
-            IconButton(onClick = onLinkAccountClick) {
+            IconButton(onClick = onExitGuestModeClick) {
                 Icon(
-                    imageVector = Icons.Filled.PersonAdd,
-                    contentDescription = "Save Account",
+                    imageVector = Icons.Filled.ArrowBackIosNew,
+                    contentDescription = "Back to Login",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -500,7 +431,8 @@ private val previewBookmarks = listOf(
         reminderTime = null,
         isCompleted = false,
         completedAt = null,
-        isSynced = true
+        isSynced = true,
+        isDeleted = false
     ),
     Bookmark(
         id = "2",
@@ -512,7 +444,8 @@ private val previewBookmarks = listOf(
         reminderTime = null,
         isCompleted = false,
         completedAt = null,
-        isSynced = false
+        isSynced = false,
+        isDeleted = false
     )
 )
 

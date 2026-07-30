@@ -81,7 +81,8 @@ class ShareViewModel @Inject constructor(
                     reminderTime = null,
                     isCompleted = false,
                     completedAt = null,
-                    isSynced = false
+                    isSynced = false,
+                    isDeleted = false
                 )
             )
         }

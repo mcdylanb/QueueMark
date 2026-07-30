@@ -114,7 +114,8 @@ private val previewBookmark = Bookmark(
     reminderTime = null,
     isCompleted = false,
     completedAt = null,
-    isSynced = true
+    isSynced = true,
+    isDeleted = false
 )
 
 @Preview(showBackground = true, name = "Bookmark — light")

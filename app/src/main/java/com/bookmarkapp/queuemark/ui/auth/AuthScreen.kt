@@ -109,7 +109,7 @@ fun AuthScreen(
             Spacer(Modifier.height(20.dp))
 
             Button(
-                onClick = { onAction(AuthUiAction.OnSignIn) },
+                onClick = { onAction(AuthUiAction.OnSignInClick) },
                 enabled = state.canSubmit,
                 shape = fieldShape,
                 modifier = Modifier
@@ -128,7 +128,7 @@ fun AuthScreen(
             }
             Spacer(Modifier.height(12.dp))
             OutlinedButton(
-                onClick = { onAction(AuthUiAction.OnSignUp) },
+                onClick = { onAction(AuthUiAction.OnSignUpClick) },
                 enabled = state.canSubmit,
                 shape = fieldShape,
                 modifier = Modifier
@@ -155,15 +155,47 @@ fun AuthScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+
             TextButton(
-                onClick = { onAction(AuthUiAction.OnContinueOffline) },
+                onClick = {
+                    if (state.isAnonymous) onAction(AuthUiAction.OnBackToDashboardClick)
+                    else onAction(AuthUiAction.OnContinueOffline)
+                },
                 enabled = !state.isLoading
             ) {
                 Text(
-                    text = "Continue as guest",
+                    text = if (state.isAnonymous) "Return as guest" else "Continue as guest",
                     color = MaterialTheme.colorScheme.secondary
                 )
             }
+        }
+
+        if (state.showSignInPrompt) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { onAction(AuthUiAction.OnDismissPrompt) },
+                title = { Text("Log in to existing account?") },
+                text = { Text("Logging into an existing account will permanently erase the offline bookmarks you currently have saved. Do you want to proceed?") },
+                confirmButton = {
+                    Button(onClick = { onAction(AuthUiAction.OnConfirmSignIn) }) { Text("Log In & Erase") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onAction(AuthUiAction.OnDismissPrompt) }) { Text("Cancel") }
+                }
+            )
+        }
+
+        if (state.showSignUpPrompt) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { onAction(AuthUiAction.OnDismissPrompt) },
+                title = { Text("Save offline data?") },
+                text = { Text("Your currently saved offline bookmarks will be permanently linked to this new account.") },
+                confirmButton = {
+                    Button(onClick = { onAction(AuthUiAction.OnConfirmSignUp) }) { Text("Create Account") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onAction(AuthUiAction.OnDismissPrompt) }) { Text("Cancel") }
+                }
+            )
         }
     }
 }

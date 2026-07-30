@@ -47,7 +47,7 @@ class BookmarkRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(id: String): Result<Unit> = writeAndSync {
-        dao.deleteById(id)
+        dao.softDelete(id)
     }
 
     override suspend fun setCompleted(id: String, completed: Boolean): Result<Unit> =
